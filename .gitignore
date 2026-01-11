@@ -75,3 +75,7 @@ instance/
 # Local development
 .vite
 .turbo
+
+
+# Dataset folders
+Dataset/
