@@ -51,14 +51,13 @@ function Diagnose() {
       });
 
       const data = await response.json();
+      console.log('API Response:', data);
 
       if (response.ok) {
+        console.log('Diagnosis from API:', data.diagnosis);
         toast.success('Analysis complete!');
 
-        // Convert selected image to a blob URL
-        const imageUrl = URL.createObjectURL(selectedFile);
-
-        // Save report to Zustand store
+        // Save report to Zustand store with all API response data
         addReport({
           patientName: patientInfo.name,
           age: patientInfo.age,
@@ -67,8 +66,10 @@ function Diagnose() {
           date: new Date().toISOString().split('T')[0],
           diagnosis: data.diagnosis,
           confidence: data.confidence,
-          status: 'pending',
-          imageUrl: imageUrl,  // Store image URL
+          status: 'completed',
+          imageUrl: data.image,  // Base64 from API
+          gradcamUrl: data.gradcam,  // Base64 from API
+          yoloUrl: data.yolo,  // Base64 from API
         });
 
         navigate('/reports');
@@ -76,6 +77,7 @@ function Diagnose() {
         toast.error(data.error || 'Analysis failed');
       }
     } catch (error) {
+      console.error('Error analyzing image:', error);
       toast.error('Error analyzing image');
     } finally {
       setIsAnalyzing(false);

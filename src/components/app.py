@@ -120,20 +120,61 @@ def run_yolo_inference_from_bytes(image_bytes):
 
 @app.route('/predict', methods=['POST'])
 def predict():
-    if 'file' not in request.files:
-        return jsonify({'error': 'No file uploaded'}), 400
-    file = request.files['file']
-    if file.filename == '':
-        return jsonify({'error': 'Empty filename'}), 400
-    file_bytes = file.read()
-    predicted_label, saved_image_path = predict_with_visualization_from_bytes(file_bytes)
-    confidence_values = run_yolo_inference_from_bytes(file_bytes)
-    confidence_str = str(confidence_values[0]) if confidence_values else "0.0"
-    buffered = io.BytesIO()
-    image = Image.open(io.BytesIO(file_bytes))
-    image.save(buffered, format="PNG")
-    img_base64 = base64.b64encode(buffered.getvalue()).decode('utf-8')
-    return jsonify({'diagnosis': predicted_label, 'confidence': confidence_str, 'image': img_base64})
+    try:
+        if 'file' not in request.files:
+            return jsonify({'error': 'No file uploaded'}), 400
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({'error': 'Empty filename'}), 400
+        file_bytes = file.read()
+        
+        print("Starting prediction...")
+        predicted_label, saved_image_path = predict_with_visualization_from_bytes(file_bytes)
+        print(f"Prediction: {predicted_label}")
+        
+        confidence_values = run_yolo_inference_from_bytes(file_bytes)
+        confidence_str = str(confidence_values[0]) if confidence_values else "0.0"
+        print(f"Confidence: {confidence_str}")
+        
+        # Convert original image to base64
+        buffered = io.BytesIO()
+        image = Image.open(io.BytesIO(file_bytes))
+        image.save(buffered, format="PNG")
+        img_base64 = base64.b64encode(buffered.getvalue()).decode('utf-8')
+        
+        # Convert Grad-CAM output to base64
+        gradcam_base64 = None
+        try:
+            with open(GRADCAM_OUTPUT_PATH, 'rb') as f:
+                gradcam_base64 = base64.b64encode(f.read()).decode('utf-8')
+                print(f"Grad-CAM saved and encoded")
+        except Exception as e:
+            print(f"Error reading Grad-CAM: {e}")
+        
+        # Convert YOLO output to base64
+        yolo_base64 = None
+        try:
+            with open(YOLO_OUTPUT_PATH, 'rb') as f:
+                yolo_base64 = base64.b64encode(f.read()).decode('utf-8')
+                print(f"YOLO saved and encoded")
+        except Exception as e:
+            print(f"Error reading YOLO: {e}")
+        
+        response = {
+            'diagnosis': predicted_label, 
+            'confidence': confidence_str, 
+            'image': img_base64,
+            'gradcam': gradcam_base64,
+            'yolo': yolo_base64
+        }
+        print(f"Returning response with diagnosis: {predicted_label}")
+        return jsonify(response)
+    
+    except Exception as e:
+        print(f"Error in predict: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
     app.run(port=8080, debug=True)

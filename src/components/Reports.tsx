@@ -1,43 +1,86 @@
-import React, { useRef } from 'react';
+import { useRef } from 'react';
 import { motion } from 'framer-motion';
 import { useReportStore } from '../components/reportStore';
 import { Download } from 'lucide-react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
-import roiOutputImage from "../components/roi_ouput/gradcam_output.png"; // Adjust path if needed
-import gradOutputImage from "../components/roi_ouput/output.png";
+
+const LOW_CONFIDENCE_THRESHOLD = 0.05;
+
+interface Report {
+  id: string | number;
+  imageUrl?: string;
+  doctor?: string;
+  date?: string;
+  patientName: string;
+  age?: string | number;
+  sex?: string;
+  diagnosis: string;
+  confidence?: string;
+  gradcamUrl?: string;
+  yoloUrl?: string;
+}
 
 const Reports = () => {
   const { reports } = useReportStore();
-  const reportRefs = useRef<{ [key: string]: HTMLDivElement | null }>({}); // Store refs dynamically
+  const reportRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
 
   const diseaseDetails = {
     glioma: {
-      prevention: "Maintain a healthy lifestyle, avoid radiation exposure.",
-      treatment: "Surgery, radiation therapy, and chemotherapy.",
-      specialist: "Neurosurgeon, Oncologist"
+      normal: {
+        prevention: "Maintain a healthy lifestyle and avoid radiation exposure.",
+        treatment: "Surgery, radiation therapy, and chemotherapy.",
+        specialist: "Neurosurgeon, Oncologist"
+      },
+      low: {
+        prevention: "Maintain overall neurological health and attend routine check-ups.",
+        treatment: "No treatment required at this stage.",
+        specialist: "General Physician"
+      }
     },
     meningioma: {
-      prevention: "Regular check-ups, avoid harmful chemicals.",
-      treatment: "Surgery, radiation therapy if needed.",
-      specialist: "Neurosurgeon"
+      normal: {
+        prevention: "Regular check-ups, avoid harmful chemicals.",
+        treatment: "Surgery, radiation therapy if needed.",
+        specialist: "Neurosurgeon"
+      },
+      low: {
+        prevention: "Maintain overall health with routine monitoring.",
+        treatment: "No treatment required at this stage.",
+        specialist: "General Physician"
+      }
     },
     pituitary: {
-      prevention: "Maintain hormonal balance, manage stress levels.",
-      treatment: "Medication, surgery, or hormone therapy.",
-      specialist: "Endocrinologist, Neurosurgeon"
+      normal: {
+        prevention: "Maintain hormonal balance, manage stress levels.",
+        treatment: "Medication, surgery, or hormone therapy.",
+        specialist: "Endocrinologist, Neurosurgeon"
+      },
+      low: {
+        prevention: "Maintain a healthy lifestyle, manage stress, and monitor hormonal health.",
+        treatment: "No active treatment required. Routine observation is advised.",
+        specialist: "Consult an Endocrinologist only if symptoms develop."
+      }
     },
     notumour: {
-      prevention: "Regular screenings and a balanced diet.",
-      treatment: "No immediate treatment, but follow-up recommended.",
-      specialist: "General Physician"
+      normal: {
+        prevention: "Regular screenings and a balanced diet.",
+        treatment: "No treatment required.",
+        specialist: "General Physician"
+      },
+      low: {
+        prevention: "Continue routine health monitoring.",
+        treatment: "No treatment required.",
+        specialist: "General Physician"
+      }
     }
   };
 
-  const downloadPDF = async (report) => {
-    if (!reportRefs.current[report.id]) return;
+  const downloadPDF = async (report: Report) => {
+    const ref = reportRefs.current[report.id];
+    if (!ref) return;
 
-    const canvas = await html2canvas(reportRefs.current[report.id], { scale: 2 });
+    const canvas = await html2canvas(ref, { scale: 2 });
     const imgData = canvas.toDataURL('image/png');
 
     const pdf = new jsPDF('p', 'mm', 'a4');
@@ -70,10 +113,10 @@ const Reports = () => {
                 <h3 className="text-xl font-semibold text-center text-gray-700 mt-2">Medical Report</h3>
 
                 {/* Image Display */}
-                <div className="flex justify-center my-4">
-                  <img src={report.imageUrl} alt="Medical Scan" className="rounded-lg shadow-md w-72 border" />
-                  <img src={roiOutputImage} alt="ROI Scan" className="rounded-lg shadow-md w-72 border" />
-                  <img src={gradOutputImage} alt="ROI Scan" className="rounded-lg shadow-md w-72 border" />
+                <div className="flex justify-center gap-4 my-4 flex-wrap">
+                  {report.imageUrl && <img src={`data:image/png;base64,${report.imageUrl}`} alt="Medical Scan" className="rounded-lg shadow-md w-72 border" />}
+                  {report.gradcamUrl && <img src={`data:image/png;base64,${report.gradcamUrl}`} alt="Grad-CAM Heatmap" className="rounded-lg shadow-md w-72 border" />}
+                  {report.yoloUrl && <img src={`data:image/png;base64,${report.yoloUrl}`} alt="YOLO Detection" className="rounded-lg shadow-md w-72 border" />}
                 </div>
 
                 {/* Report Details */}
@@ -83,14 +126,47 @@ const Reports = () => {
                 <p className="text-gray-700"><strong>Age:</strong> {report.age} | <strong>Sex:</strong> {report.sex}</p>
 
                 {/* Disease Information */}
-                <div className="mt-4 p-4 border rounded-lg bg-gray-100">
-                  <h4 className="text-lg font-bold text-gray-800">Findings:</h4>
-                  <p><strong>Diagnosis:</strong> {report.diagnosis}</p>
-                  <p><strong>Probability:</strong> {report.confidence}</p>
-                  <p><strong>Prevention:</strong> {diseaseDetails[report.diagnosis.toLowerCase()]?.prevention || "N/A"}</p>
-                  <p><strong>Treatment:</strong> {diseaseDetails[report.diagnosis.toLowerCase()]?.treatment || "N/A"}</p>
-                  <p><strong>Specialist:</strong> {diseaseDetails[report.diagnosis.toLowerCase()]?.specialist || "N/A"}</p>
-                </div>
+                {(() => {
+                  const confidence = Number(report.confidence) || 0;
+                  const isLowConfidence = confidence <= LOW_CONFIDENCE_THRESHOLD;
+
+                  const diagnosisKey = report.diagnosis.toLowerCase();
+                  const disease = diseaseDetails[diagnosisKey as keyof typeof diseaseDetails];
+
+                  const diagnosisText = isLowConfidence
+                    ? "No significant abnormality detected"
+                    : report.diagnosis;
+
+                  const recommendations = isLowConfidence
+                    ? disease?.low
+                    : disease?.normal;
+
+                  return (
+                    <div className="mt-4 p-4 border rounded-lg bg-gray-100 space-y-1">
+                      <h4 className="text-lg font-bold text-gray-800">Findings:</h4>
+
+                      <p>
+                        <strong>Diagnosis:</strong> {diagnosisText}
+                      </p>
+
+                      <p>
+                        <strong>Probability:</strong> {confidence.toFixed(2)}
+                      </p>
+
+                      <p>
+                        <strong>Prevention:</strong> {recommendations?.prevention || "N/A"}
+                      </p>
+
+                      <p>
+                        <strong>Treatment:</strong> {recommendations?.treatment || "N/A"}
+                      </p>
+
+                      <p>
+                        <strong>Specialist:</strong> {recommendations?.specialist || "N/A"}
+                      </p>
+                    </div>
+                  );
+                })()}
 
                 <p className="text-center text-sm text-gray-500 mt-4">For inquiries and appointments, contact please visit our hospital or contact us at (123) 456-7890.</p>
               </div>
