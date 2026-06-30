@@ -11,8 +11,6 @@ interface Report {
   status: 'pending' | 'completed';
   imageUrl?: string;
   confidence?: string;
-  gradcamUrl?: string;
-  yoloUrl?: string;
 }
 
 interface ReportStore {

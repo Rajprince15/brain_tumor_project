@@ -3,7 +3,6 @@
 ![Image](https://github.com/user-attachments/assets/4df2d055-eaaf-422f-a6fd-0a2312d8fd33)
 
 ![Brain Tumor Detection]([Brain-tumor-classification-ai
-/PROJECT IMAGES/](https://github.com/aniket866/Brain-tumor-classification-ai/blob/main/PROJECT%20IMAGES/Report%20generated.png))
 
 [![Python](https://img.shields.io/badge/Python-3.8%2B-blue.svg)](https://www.python.org/) 
 [![Flask](https://img.shields.io/badge/Flask-Web%20Framework-green.svg)](https://flask.palletsprojects.com/)
@@ -80,17 +79,14 @@ A Flask-based website was created where users can:
  ├── 🏞️ notumour
 ```
 
-## 🚀 Demo 🎥
-🔗 **Live Demo:** [Coming Soon](#)
 
-![Demo Screenshot](https://via.placeholder.com/800x400.png?text=Live+Demo+Placeholder)
 
 ---
 
 ## 🛠️ Installation 🖥️
 ### 1️⃣ Clone the Repository 🛎️
 ```bash
-git clone https://github.com/aniket866/brain-tumor-ai.git
+git clone ...
 cd brain-tumor-ai
 ```
 ### 2️⃣ Create a Virtual Environment & Install Dependencies ⚙️
@@ -222,9 +218,7 @@ This model provides highly accurate brain tumor classification. The web applicat
 
 
 ## 📜 License 📃
-MIT License © 2025 aniket866
+MIT License 
 
 ---
-
-📩 **Need Help?** Reach out at [iamaniketkumarmaner@gmail.com](mailto:your-email@example.com) 💌
 
